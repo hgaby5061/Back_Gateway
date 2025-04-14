@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -25,15 +26,27 @@ import com.service.web.app.busqueda.mod.models.Relations;
 
 public class Services {
 
-	public String consumeTika(List<MultipartFile> files, Map<String, String> time,
-			Map<String, String> author,
+	public String consumeTika(List<MultipartFile> files, Map<String, String> time, Map<String, String> author,
 			RestTemplate restClient) {
 		HttpHeaders header = new HttpHeaders();
 		header.setContentType(MediaType.MULTIPART_FORM_DATA);
 
 		MultiValueMap<String, Object> formData = new LinkedMultiValueMap<>();
 		for (MultipartFile multipartFile : files) {
-			formData.add("files", toFile(multipartFile));
+			// formData.add("files", toFile(multipartFile)/* multipartFile */);
+			ByteArrayResource resource;
+			try {
+				resource = new ByteArrayResource(multipartFile.getBytes()) {
+					@Override
+					public String getFilename() {
+						return multipartFile.getOriginalFilename();
+					}
+				};
+				formData.add("files", resource);
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 
 			formData.add("modified", time.get("lastModified_" + multipartFile.getOriginalFilename()));
 			formData.add("author", author.get("author"));
@@ -43,8 +56,11 @@ public class Services {
 		// List<Document> text
 		// =Arrays.asList(restClient.postForObject("http://localhost:3001/text-tika",request,Document[].class));
 		//
-		ResponseEntity<String> response = restClient.postForEntity("http://localhost:3001/text-tika", request,
-				String.class);
+		System.out.println(request);
+		// "https://backtexttika-production.up.railway.app/text-tika"
+		ResponseEntity<String> response = restClient
+				.postForEntity("https://backtexttika-production.up.railway.app/text-tika", request,
+						String.class);
 
 		if (response.getStatusCode().is2xxSuccessful()) {
 			String doc = response.getBody();
@@ -54,7 +70,8 @@ public class Services {
 	}
 
 	public List<ResponseEntity<Document[]>> consumeNer(List<Document> list, RestTemplate restClient) {
-		ResponseEntity<Document[]> response = restClient.postForEntity("http://localhost:3002/nlp/ner", list,
+		ResponseEntity<Document[]> response = restClient.postForEntity(
+				"https://backanalyze-production.up.railway.app/nlp/ner", list,
 				Document[].class);
 
 		if (response.getStatusCode().is2xxSuccessful()) {
@@ -65,14 +82,15 @@ public class Services {
 	}
 
 	public List<ResponseEntity<Document[]>> consumeRelations(List<Document> list, RestTemplate restClient) {
-		ResponseEntity<Document[]> response = restClient.postForEntity("http://localhost:3002/nlp/relations", list,
+		ResponseEntity<Document[]> response = restClient.postForEntity(
+				"https://backanalyze-production.up.railway.app/nlp/relations", list,
 				Document[].class);
 
 		if (response.getStatusCode().is2xxSuccessful()) {
 			List<ResponseEntity<Document[]>> doc = Arrays.asList(response);
 			/*
-			 * doc.get(0).getBody()[0].getRelations().stream()
-			 * .map(d -> new Relations(d.getGovernor(), d.getDependent(), d.getRelation()))
+			 * doc.get(0).getBody()[0].getRelations().stream() .map(d -> new
+			 * Relations(d.getGovernor(), d.getDependent(), d.getRelation()))
 			 * .collect(Collectors.toList());
 			 */
 			return doc;
@@ -81,7 +99,7 @@ public class Services {
 	}
 
 	public String indexSolr(List<Object> documents, RestTemplate restClient) {
-		ResponseEntity<String> response = restClient.postForEntity("http://localhost:3003/solr/index", documents,
+		ResponseEntity<String> response = restClient.postForEntity("https://spring-solr.loca.lt/index", documents,
 				String.class);
 		// System.out.println(response);
 		if (response.getStatusCode().is2xxSuccessful()) {
@@ -93,13 +111,9 @@ public class Services {
 
 	public String searchSolr(String query, RestTemplate restClient) {
 		try {
-			String url = UriComponentsBuilder
-					.fromUriString("http://localhost:3003/solr/search")
-					.queryParam("query", query)
-					.build()
-					.toUriString();
-			ResponseEntity<String> response = restClient.getForEntity(url,
-					String.class);
+			String url = UriComponentsBuilder.fromUriString("https://spring-solr.loca.lt/solr/search")
+					.queryParam("query", query).build().toUriString();
+			ResponseEntity<String> response = restClient.getForEntity(url, String.class);
 			System.out.println("GABY RESPONSE");
 			if (response.getStatusCode().is2xxSuccessful()) {
 				String string = response.getBody();
@@ -116,12 +130,9 @@ public class Services {
 
 	public String getTopics(List<String> ids, RestTemplate restClient) {
 		try {
-			String url = UriComponentsBuilder
-					.fromUriString("http://localhost:3003/solr/topics")
-					.build()
+			String url = UriComponentsBuilder.fromUriString("https://spring-solr.loca.lt/solr/topics").build()
 					.toUriString();
-			ResponseEntity<String> response = restClient.postForEntity(url, ids,
-					String.class);
+			ResponseEntity<String> response = restClient.postForEntity(url, ids, String.class);
 			System.out.println("GABY RESPONSE");
 			if (response.getStatusCode().is2xxSuccessful()) {
 				String string = response.getBody();
@@ -137,12 +148,8 @@ public class Services {
 	}
 
 	public String getUnanalyzed(RestTemplate restClient) {
-		String url = UriComponentsBuilder
-				.fromUriString("http://localhost:3003/solr/unanalyzed")
-				.build()
-				.toUriString();
-		ResponseEntity<String> response = restClient.getForEntity(url,
-				String.class);
+		String url = UriComponentsBuilder.fromUriString("https://spring-solr.loca.lt/unanalyzed").build().toUriString();
+		ResponseEntity<String> response = restClient.getForEntity(url, String.class);
 		// System.out.println(response);
 		if (response.getStatusCode().is2xxSuccessful()) {
 			return response.getBody();
@@ -152,13 +159,9 @@ public class Services {
 
 	public String completeSolr(String query, RestTemplate restClient) {
 		System.out.println("Esntro a donde llama a solr");
-		String url = UriComponentsBuilder
-				.fromUriString("http://localhost:3003/solr/complete")
-				.queryParam("query", query)
-				.build()
-				.toUriString();
-		ResponseEntity<String> response = restClient.getForEntity(url,
-				String.class);
+		String url = UriComponentsBuilder.fromUriString("https://spring-solr.loca.lt/complete")
+				.queryParam("query", query).build().toUriString();
+		ResponseEntity<String> response = restClient.getForEntity(url, String.class);
 
 		if (response.getStatusCode().is2xxSuccessful()) {
 			String string = response.getBody();
@@ -168,7 +171,8 @@ public class Services {
 	}
 
 	public String graph(List<Document> list, RestTemplate restClient) {
-		ResponseEntity<String> response = restClient.postForEntity("http://localhost:3002/nlp/graph", list,
+		ResponseEntity<String> response = restClient.postForEntity(
+				"https://backanalyze-production.up.railway.app/nlp/graph", list,
 				String.class);
 
 		if (response.getStatusCode().is2xxSuccessful()) {
