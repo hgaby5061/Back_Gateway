@@ -99,7 +99,7 @@ public class Services {
 	}
 
 	public String indexSolr(List<Object> documents, RestTemplate restClient) {
-		ResponseEntity<String> response = restClient.postForEntity("https://spring-solr.loca.lt/index", documents,
+		ResponseEntity<String> response = restClient.postForEntity("https://spring-solr.loca.lt/solr/index", documents,
 				String.class);
 		// System.out.println(response);
 		if (response.getStatusCode().is2xxSuccessful()) {
@@ -148,7 +148,7 @@ public class Services {
 	}
 
 	public String getUnanalyzed(RestTemplate restClient) {
-		String url = UriComponentsBuilder.fromUriString("https://spring-solr.loca.lt/unanalyzed").build().toUriString();
+		String url = UriComponentsBuilder.fromUriString("https://spring-solr.loca.lt/solr/unanalyzed").build().toUriString();
 		ResponseEntity<String> response = restClient.getForEntity(url, String.class);
 		// System.out.println(response);
 		if (response.getStatusCode().is2xxSuccessful()) {
@@ -159,7 +159,7 @@ public class Services {
 
 	public String completeSolr(String query, RestTemplate restClient) {
 		System.out.println("Esntro a donde llama a solr");
-		String url = UriComponentsBuilder.fromUriString("https://spring-solr.loca.lt/complete")
+		String url = UriComponentsBuilder.fromUriString("https://spring-solr.loca.lt/solr/complete")
 				.queryParam("query", query).build().toUriString();
 		ResponseEntity<String> response = restClient.getForEntity(url, String.class);
 
