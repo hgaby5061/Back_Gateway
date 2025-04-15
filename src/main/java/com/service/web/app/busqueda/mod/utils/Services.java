@@ -59,7 +59,7 @@ public class Services {
 		System.out.println(request);
 		// "https://backtexttika-production.up.railway.app/text-tika"
 		ResponseEntity<String> response = restClient
-				.postForEntity("https://backtexttika-production.up.railway.app/text-tika", request,
+				.postForEntity("https://fortunate-miracle-production-fffa.up.railway.app/text-tika", request,
 						String.class);
 
 		if (response.getStatusCode().is2xxSuccessful()) {
